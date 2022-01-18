@@ -1,6 +1,8 @@
 use casbin::{CoreApi, DefaultModel, Enforcer, FileAdapter, RbacApi};
 use std::io;
 use std::sync::RwLock;
+use std::time::Duration;
+use async_std::task;
 
 use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer};
 
@@ -12,6 +14,8 @@ async fn success(
     let mut e = enforcer.write().unwrap();
     println!("{:?}", req);
     assert_eq!(vec!["data2_admin"], e.get_roles_for_user("alice", None));
+
+    task::sleep(Duration::from_secs(5)).await;
 
     HttpResponse::Ok().body("Success: alice is data2_admin.")
 }
@@ -49,6 +53,7 @@ async fn main() -> io::Result<()> {
             .service(web::resource("/success").to(success))
             .service(web::resource("/fail").to(fail))
     })
+    .workers(1)
     .bind("127.0.0.1:8080")?
     .run()
     .await
